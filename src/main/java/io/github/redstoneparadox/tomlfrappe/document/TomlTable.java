@@ -2,6 +2,7 @@ package io.github.redstoneparadox.tomlfrappe.document;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,19 +68,54 @@ public class TomlTable extends TomlElement implements Map<String, TomlElement> {
 		Objects.requireNonNull(key, "TOML documents prohibit null keys!");
 		Objects.requireNonNull(value, "TOML documents prohibit null values!");
 
-		if (containsKey(key)) {
-			Entry existing = getEntry(key);
-			assert existing != null;
-			TomlElement previous = existing.value;
-			existing.value = value;
+		Entry existing = getOrCreateEntry(key);
+		return existing.setValue(value);
+	}
 
-			return previous;
+	public TomlElement put(String key, TomlElement value, String comment, boolean commentIsInline) throws Exception {
+		Objects.requireNonNull(key, "TOML documents prohibit null keys!");
+		Objects.requireNonNull(value, "TOML documents prohibit null values!");
+
+		if (inline) throw new Exception("Inline table entries can't have comments!");
+
+		Entry existing = getOrCreateEntry(key);
+
+		if (comment != null) {
+			if (commentIsInline) existing.setInlineComment(comment);
+			else existing.setAboveComment(comment);
 		}
 
-		Entry entry = new Entry(key);
-		entry.setValue(value);
+		return existing.setValue(value);
+	}
 
-		return null;
+	public TomlElement put(String key, TomlElement value, String aboveComment, String inlineComment) throws Exception {
+		Objects.requireNonNull(key, "TOML documents prohibit null keys!");
+		Objects.requireNonNull(value, "TOML documents prohibit null values!");
+
+		if (inline) throw new Exception("Inline table entries can't have comments!");
+
+		Entry existing = getOrCreateEntry(key);
+
+		if (aboveComment != null) existing.setAboveComment(aboveComment);
+		if (inlineComment != null) existing.setInlineComment(inlineComment);
+
+		return existing.setValue(value);
+	}
+
+	public void setAboveComment(String key, String aboveComment) {
+		if (containsKey(key)) {
+			Entry existing = getOrCreateEntry(key);
+
+			if (aboveComment != null) existing.setAboveComment(aboveComment);
+		}
+	}
+
+	public void setInlineComment(String key, String inlineComment) {
+		if (containsKey(key)) {
+			Entry existing = getOrCreateEntry(key);
+
+			if (inlineComment != null) existing.setInlineComment(inlineComment);
+		}
 	}
 
 	@Override
@@ -91,49 +127,64 @@ public class TomlTable extends TomlElement implements Map<String, TomlElement> {
 
 		for (Entry entry: entries) {
 			if (entry.key == key) {
+				toRemove = entry;
 				value = entry.value;
 			}
 		}
 
 		if (toRemove != null) entries.remove(toRemove);
 
-		return null;
+		return value;
 	}
 
 	@Override
 	public void putAll(Map<? extends String, ? extends TomlElement> m) {
-
+		for (Map.Entry<? extends String, ? extends TomlElement> entry: m.entrySet()) {
+			entries.add(new Entry(entry.getKey(), entry.getValue()));
+		}
 	}
 
 	@Override
 	public void clear() {
-
+		entries.clear();
 	}
 
 	@Override
 	public Set<String> keySet() {
-		return null;
+		Set<String> keys = new HashSet<>();
+
+		for (Entry entry: entries) {
+			keys.add(entry.key);
+		}
+
+		return keys;
 	}
 
 	@Override
 	public Collection<TomlElement> values() {
-		return null;
+		Collection<TomlElement> values = new HashSet<>();
+
+		for (Entry entry: entries) {
+			values.add(entry.value);
+		}
+
+		return values;
 	}
 
 	@Override
 	public Set<Map.Entry<String, TomlElement>> entrySet() {
-		return null;
+		return new HashSet<>(entries);
 	}
 
-	private Entry getEntry(String key) {
+	private Entry getOrCreateEntry(String key) {
 		for (Entry entry: entries) {
 			if (key.equals(entry.key)) return entry;
 		}
 
-		return null;
+		return new Entry(key);
 	}
 
-	private class Entry {
+	private static class Entry implements Map.Entry<String, TomlElement> {
 		private final String key;
 		private String aboveComment;
 		private String inlineComment;
@@ -143,10 +194,41 @@ public class TomlTable extends TomlElement implements Map<String, TomlElement> {
 			this.key = key;
 		}
 
-		private TomlElement setValue(TomlElement element) {
+		private Entry(String key, TomlElement value) {
+			this.key = key;
+			this.value = value;
+		}
+
+		@Override
+		public String getKey() {
+			return key;
+		}
+
+		@Override
+		public TomlElement getValue() {
+			return value;
+		}
+
+		public TomlElement setValue(TomlElement element) {
 			TomlElement oldValue = value;
 			value = element;
 			return oldValue;
+		}
+
+		public String getAboveComment() {
+			return aboveComment;
+		}
+
+		public void setAboveComment(String aboveComment) {
+			this.aboveComment = aboveComment;
+		}
+
+		public String getInlineComment() {
+			return inlineComment;
+		}
+
+		public void setInlineComment(String inlineComment) {
+			this.inlineComment = inlineComment;
 		}
 	}
 }
