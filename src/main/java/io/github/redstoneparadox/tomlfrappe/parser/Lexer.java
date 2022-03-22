@@ -17,7 +17,19 @@ public class Lexer {
 		var c =  ' ';
 
 		while (c != '\u0000') {
+			consumeWhitespace();
+			c = next();
+			switch (c) {
+				case '"':
+					break;
+				default:
+					if (Character.isLetter(c)) {
+						identifier(c);
+					} else if (Character.isDigit(c)) {
 
+					}
+					break;
+			}
 		}
 
 		var lexed = tokens;
@@ -38,6 +50,24 @@ public class Lexer {
 				default:
 					return;
 			}
+		}
+	}
+
+	private void identifier(char first) {
+		StringBuilder wordBuilder = new StringBuilder();
+
+		wordBuilder.append(first);
+
+		while (Character.isLetter(peek(0)) || Character.isLetter(peek(0))) {
+			wordBuilder.append(next());
+		}
+
+		String word = wordBuilder.toString();
+
+		switch (word) {
+			case "true" -> tokens.add(new Token(TokenType.TRUE, 0, 0, null, false));
+			case "false" -> tokens.add(new Token(TokenType.FALSE, 0, 0, null, false));
+			default -> tokens.add(new Token(TokenType.IDENTIFIER, 0, 0, word, null));
 		}
 	}
 
