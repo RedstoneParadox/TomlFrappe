@@ -10,11 +10,9 @@ public class Lexer {
 	private int row = 0;
 	private int column = 0;
 
-
-	public List<Token> lex(String toml) {
-		source = toml.toCharArray();
-
-		var c =  ' ';
+	public List<Token> lex(String source) {
+		this.source = source.toCharArray();
+		char c =  ' ';
 
 		while (c != '\u0000') {
 			consumeWhitespace();
